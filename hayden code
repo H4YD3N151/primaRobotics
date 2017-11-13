@@ -1,0 +1,122 @@
+//Declare any variables shared between functions here
+float currentPos[13];
+float myPosA[3];
+float myPosB[3];
+float myPosBase[3];
+float attitudeA[3];
+float attitudeB[3];
+float attitudeC[3];
+int flag;
+int stayB;
+bool BacktoBase;
+
+void init(){
+    
+    flag = 0;
+    stayB = 0;
+    BacktoBase = 0;
+    
+    myPosA[0] = 0.5;
+    myPosA[1] = -0.5;
+    myPosA[2] = 0.33;
+    
+    myPosB[0] = -0.45;
+    myPosB[1] = 0.2;
+    myPosB[2] = 0.33;
+    
+    myPosBase[0] = 0;
+    myPosBase[1] = 0;
+    myPosBase[2] = 0;
+    
+    //drilling attitude
+    attitudeA[0] = 0;
+    attitudeA[1] = 1.57079633;
+    attitudeA[2] = 0;
+    
+    //base dropoff rotation
+    attitudeB[0] = 0;
+    attitudeB[1] = 0;
+    attitudeB[2] = -1.57079633;
+    
+    attitudeC[0] =-1.57079633;
+    attitudeC[1] = 0;
+    attitudeC[2] = 0;
+    
+    
+	//This function is called once when your code is first loaded.
+
+	//IMPORTANT: make sure to set any variables that need an initial value.
+	//Do not assume variables will be set to 0 automatically!
+}
+
+void loop(){
+	//This function is called once per second.  Use it to control the satellite.
+    api.getMySphState(currentPos);
+    
+    if(flag == 0){
+    api.setPositionTarget(myPosA);
+    }
+    
+    if(currentPos[0] > 0.49 && currentPos[0] < 0.51 && currentPos[1] > -0.51 && currentPos[1] < -0.49 &&
+    currentPos[2] > 0.335 && currentPos[2] < 0.34 && flag == 0){
+        game.startDrill();
+        flag = 1;
+        //when the sphere gets to the drilling point the drill starts and the shpere spins
+    }
+    
+    if(flag == 1 || flag == 3){
+        api.setAttitudeTarget(attitudeA);
+        //drilling rotation
+        //keeps spinning... Help???
+    }
+    
+    if(game.checkSample() && flag == 1){
+        game.pickupSample();
+        game.stopDrill();
+        flag = 2;
+        //when there is a sample ready the drill stops, the sample is picked up, the function to go
+        //to the next drill point is activated
+    }
+    
+    if(flag == 2){
+        api.setAttitudeTarget(attitudeC);
+        if(flag == 2){
+            stayB = 1;
+        }
+        //moves to drill point B
+    }
+    
+    if(stayB == 1){
+        api.setPositionTarget(myPosB);
+    }
+    
+    if(currentPos[0] < -0.447 && currentPos[0] > -0.453 && currentPos[1] > 0.197 && currentPos[1] < 0.203 &&
+    currentPos[2] > 0.329 && currentPos[2] < 0.34 && flag == 2){
+        game.startDrill();
+        flag = 3;
+        //starts drill at drill point B
+        //activates drilling rotation if statement
+    }
+    if(game.checkSample() && flag == 3){
+        game.pickupSample();
+        game.stopDrill();
+        stayB = 0;
+        BacktoBase = 1;
+        //when there is a sample ready the drill stops, the sample is picked up, the function to go
+        //to the base is activated
+    }
+    
+    if(BacktoBase == 1){
+        api.setPositionTarget(myPosBase);
+        api.setAttitudeTarget(attitudeB);
+        //command to go back to base
+    }
+    
+    if(currentPos[0] > -0.02 && currentPos[0] < 0.02 && currentPos[1] > -0.02 && currentPos[1] < 0.02 &&
+    currentPos[2] > -0.02 && currentPos[2] < 0.02 && BacktoBase == 1){
+        game.dropSample(0);
+        BacktoBase = 0;
+        //at the base the sphere drops the sample and deactivates the BacktoBase function
+    }
+    
+}
